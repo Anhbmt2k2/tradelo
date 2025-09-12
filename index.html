@@ -1,133 +1,464 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trader Lỏ - Hoàn Phí Giao Dịch MEXC & BingX</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trader Lỏ - Crypto Portfolio (Standalone)</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-white text-gray-900">
+<body class="bg-slate-50 min-h-screen">
+  <div class="max-w-5xl mx-auto p-4">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Trader Lỏ</h1>
+        <p class="text-sm text-gray-600">Theo dõi danh mục — giá lấy từ Binance (USDT pair). Dữ liệu lưu tại trình duyệt.</p>
+      </div>
+      <div class="flex gap-2 items-center">
+        <button id="refreshBtn" class="px-3 py-2 bg-slate-800 text-white rounded">Cập nhật giá</button>
+        <label class="flex items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" id="autoRefresh" />
+          Auto refresh
+        </label>
+        <select id="intervalSelect" class="p-1 border rounded text-sm" title="Interval">
+          <option value="30">30s</option>
+          <option value="60" selected>60s</option>
+          <option value="120">120s</option>
+          <option value="300">300s</option>
+        </select>
+      </div>
+    </header>
 
-  <!-- HEADER -->
-  <header class="text-center p-6 bg-white">
-    <!-- Avatar -->
-    <img src="tradelo.jpg" alt="Avatar Trader Lỏ" 
-         class="mx-auto w-32 h-32 rounded-full border-4 border-yellow-500 mb-4 object-cover bg-white">
+    <!-- Form -->
+    <section class="mb-6 bg-white p-4 rounded shadow">
+      <form id="coinForm" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input id="name" class="p-2 border rounded" placeholder="Tên coin (ví dụ: Bitcoin)" />
+        <input id="symbol" class="p-2 border rounded" placeholder="Symbol (ví dụ: BTC)" />
+        <input id="pair" class="p-2 border rounded" placeholder="Pair (tùy chọn, ex: BTCUSDT)" />
+        <input id="amount" class="p-2 border rounded" placeholder="Số lượng" />
+        <input id="buyPrice" class="p-2 border rounded" placeholder="Giá mua (USD)" />
+        <input id="notes" class="p-2 border rounded" placeholder="Ghi chú" />
+        <div class="sm:col-span-3 flex gap-2 mt-2">
+          <button id="saveBtn" type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded">Thêm vào danh mục</button>
+          <button id="cancelEdit" type="button" class="px-4 py-2 border rounded hidden">Hủy</button>
+          <div class="ml-auto text-right">
+            <div class="text-sm text-gray-600">Tổng đầu tư: <strong id="totalInvested">$0.00</strong></div>
+            <div class="text-sm text-gray-600">Giá trị hiện tại: <strong id="totalCurrent">$0.00</strong></div>
+            <div id="totalPL" class="text-sm text-gray-600">Lời/Lỗ: <strong>$0.00 (0.00%)</strong></div>
+            <div class="text-xs text-gray-400">Last updated: <span id="lastUpdated">-</span></div>
+          </div>
+        </div>
+      </form>
+    </section>
 
-    <!-- Logo + Tiêu đề -->
-    <img src="12323.jpg" alt="Logo Trader Lỏ" 
-         class="mx-auto w-16 h-16 mb-2">
-    <h1 class="text-3xl font-bold text-yellow-500">TRADE LỎ</h1>
-    <p class="text-yellow-600">Trade Lỏ - Hoàn Phí, Kiến Thức, Lợi Nhuận!</p>
-
-    <!-- Liên hệ -->
-    <div class="mt-4 text-sm text-gray-700 space-y-1">
-      <p>📱 Zalo: 
-        <a href="https://zalo.me/0878823475" target="_blank" class="underline text-blue-600">0878823475</a>
-      </p>
-      <p>✈️ Telegram: 
-        <a href="https://t.me/anhisme2" target="_blank" class="underline text-blue-600">@anhisme2</a>
-      </p>
+    <!-- Tools -->
+    <div class="flex gap-2 items-center mb-4">
+      <input id="search" class="p-2 border rounded flex-1" placeholder="Tìm kiếm tên hoặc symbol" />
+      <button id="exportCsv" class="px-3 py-2 border rounded">Export CSV</button>
+      <label class="px-3 py-2 border rounded cursor-pointer">
+        Import CSV
+        <input id="importFile" type="file" accept=".csv" class="hidden" />
+      </label>
+      <button id="clearAll" class="px-3 py-2 bg-red-600 text-white rounded">Xóa tất cả</button>
     </div>
-  </header>
 
-  <!-- MAIN -->
-  <main class="max-w-3xl mx-auto p-6 space-y-10 text-gray-800">
-
-    <!-- BingX -->
-    <section class="bg-yellow-100 p-6 rounded-lg shadow-lg">
-      <h2 class="text-2xl font-semibold mb-2 text-blue-600">🎯 Hoàn Phí Giao Dịch BingX</h2>
-      <p class="mb-4">
-        Khi bạn đăng ký tài khoản BingX qua liên kết dưới đây, bạn sẽ được hoàn phí giao dịch và nhận các phần thưởng hấp dẫn khác.
-      </p>
-      <p><strong>Ref code:</strong> <code>traderlo</code></p>
-      <a href="https://bingx.com/partner/traderlo" target="_blank" 
-         class="inline-block mt-4 px-4 py-2 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 transition">
-        👉 Đăng ký BingX tại đây
-      </a>
+    <!-- Table -->
+    <section class="overflow-x-auto bg-white rounded shadow">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="p-2 text-left">Coin</th>
+            <th class="p-2 text-left">Số lượng</th>
+            <th class="p-2 text-right">Giá mua</th>
+            <th class="p-2 text-right">Giá Binance</th>
+            <th class="p-2 text-right">Giá trị hiện tại</th>
+            <th class="p-2 text-right">Lời/Lỗ</th>
+            <th class="p-2">Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- rows injected here -->
+        </tbody>
+      </table>
     </section>
 
-    <!-- MEXC -->
-    <section class="bg-green-100 p-6 rounded-lg shadow-lg">
-      <h2 class="text-2xl font-semibold mb-2 text-green-700">📈 Hoàn Phí Giao Dịch MEXC</h2>
-      <p class="mb-4">
-        Khi bạn đăng ký tài khoản MEXC thông qua liên kết dưới đây, bạn sẽ nhận hoàn phí giao dịch và nhiều phần thưởng khác.
-      </p>
-      <p><strong>Ref code:</strong> <code>mexc-Traderlo</code></p>
-      <a href="https://byvn.net/Traderlo" target="_blank" 
-         class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-bold rounded hover:bg-green-400 transition">
-        👉 Đăng ký MEXC tại đâyđây
-      </a>
-    </section>
+    <footer class="text-xs text-gray-500 text-center mt-6">
+      Lưu ý: Giá lấy từ API công khai của Binance. Một số token không có cặp USDT trực tiếp — bạn có thể chỉnh "Pair" khi thêm coin.
+    </footer>
+  </div>
 
-    <!-- Lợi ích -->
-    <section class="bg-blue-100 p-6 rounded-lg shadow-lg">
-      <h2 class="text-2xl font-semibold mb-2 text-blue-700">💡 Lợi Ích Khi Đăng Ký Hoàn Phí Giao Dịch</h2>
-      <ul class="list-disc list-inside space-y-2">
-        <li><strong>Tiết kiệm chi phí:</strong> Giảm thiểu chi phí giao dịch, tăng lợi nhuận cho mỗi lệnh.</li>
-        <li><strong>Ưu đãi thành viên mới:</strong> Nhận bonus hoặc phần thưởng khi tham gia qua link giới thiệu.</li>
-        <li><strong>Trải nghiệm nền tảng chất lượng:</strong> BingX & MEXC là sàn uy tín, hỗ trợ đa dạng sản phẩm.</li>
-        <li><strong>Hỗ trợ cộng đồng:</strong> Tham gia nhóm Zalo để học hỏi chiến lược và mẹo giao dịch.</li>
-      </ul>
-    </section>
+  <script>
+    // ---------- Helper ----------
+    const $ = (id) => document.getElementById(id);
+    const STORAGE_KEY = "trader_lo_portfolio_v1";
 
-    <!-- Bài viết MEXC -->
-    <section class="bg-green-50 p-6 rounded-lg shadow-md">
-      <h2 class="text-xl font-bold mb-2 text-green-800">
-        🔥 CHUYỂN REF TRADER LỎ SÀN MEXC ĐỂ NHẬN 20% HOÀN PHÍ SPOT & FUTURES HÀNG NGÀY VĨNH VIỄN
-      </h2>
-      <p><strong>Bước 1:</strong> Tạo tài khoản MEXC mới theo link ref Cashback Exchange:</p>
-      <p>
-        <a href="https://www.mexc.com/vi-VN/acquisition/custom-sign-up?shareCode=mexc-Traderlo" target="_blank" class="text-blue-600 underline">Link chuyển ref</a> 
-        – <code>mã giới thiệu: mexc-Traderlo</code>
-      </p>
-      <p><strong>Bước 2:</strong> Dùng giấy tờ tuỳ thân (CCCD, Passport...) để KYC tài khoản mới.</p>
-      <p><strong>Cơ chế hoàn tiền:</strong> 20% phí giao dịch sẽ được hoàn hằng ngày qua UID của bạn.</p>
-      <p class="mt-2"><strong>Lưu ý:</strong></p>
-      <ul class="list-disc list-inside ml-4">
-        <li>Không nên dùng 2 tài khoản MEXC trên cùng thiết bị.</li>
-        <li>Dùng email mới để đăng ký, CCCD cũ để KYC (1 CCCD có thể KYC tối đa 10 tài khoản).</li>
-        <li>Có thể dùng giấy tờ khác để KYC như bằng lái xe, passport.</li>
-      </ul>
-    </section>
+    function fmtUSD(n) {
+      if (n === null || n === undefined || isNaN(n)) return "-";
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(n);
+    }
 
-    <!-- Bài viết BingX -->
-    <section class="bg-yellow-50 p-6 rounded-lg shadow-md">
-      <h2 class="text-xl font-bold mb-2 text-yellow-800">
-        💸 CHUYỂN REF TRADER LỎ SÀN BINGX ĐỂ NHẬN 45% PHÍ SPOT & FUTURES HÀNG NGÀY VĨNH VIỄN
-      </h2>
-      <p><strong>Bước 1:</strong> Dùng email hoặc SĐT mới để đăng ký tài khoản theo link:</p>
-      <p>
-        <a href="https://bingx.com/partner/traderlo" target="_blank" class="text-blue-600 underline">Link chuyển ref</a> 
-        – <code>mã giới thiệu: traderlo</code>
-      </p>
-      <p><strong>Bước 2:</strong> Đăng nhập tài khoản BingX cũ, rút tài sản và thực hiện chuyển KYC.</p>
-      <p><strong>Cơ chế hoàn tiền:</strong> Tiền sẽ được hoàn vào 24h mỗi ngày.</p>
-      <p class="mt-2"><strong>Lưu ý:</strong></p>
-      <ul class="list-disc list-inside ml-4">
-        <li>Tài khoản BingX cũ phải ngưng giao dịch ít nhất 7 ngày trước khi chuyển KYC.</li>
-        <li>Sau khi chuyển đổi danh tính thành công, cả hai tài khoản sẽ bị khóa rút tiền trong 24h.</li>
-      </ul>
-    </section>
+    // ---------- State ----------
+    let coins = []; // { id, name, symbol, pair, amount, buyPrice, notes, currentPrice }
+    let editingIndex = -1;
+    let autoRefreshTimer = null;
 
-    <!-- Telegram Channel -->
-    <section class="bg-indigo-100 p-6 rounded-lg shadow-lg">
-      <h2 class="text-2xl font-semibold mb-2 text-indigo-700">💬 Tham Gia Channel Nhận Kèo Free</h2>
-      <p class="mb-4">Nhận kèo miễn phí tại channel <strong>Tổ Đội Gồng Vô Cực</strong>.</p>
-      <a href="https://t.me/todoigongvocuc" target="_blank" 
-         class="inline-block mt-4 px-4 py-2 bg-indigo-400 text-black font-bold rounded hover:bg-indigo-300 transition">
-        👉 Tham Gia Ngay
-      </a>
-    </section>
+    // ---------- Persistence ----------
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        coins = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        coins = [];
+      }
+    }
+    function saveToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(coins));
+    }
 
-  </main>
+    // ---------- Render ----------
+    function renderTable(filter = "") {
+      const tbody = $("tbody");
+      tbody.innerHTML = "";
+      const filtered = coins.filter(c =>
+        c.name.toLowerCase().includes(filter) || c.symbol.toLowerCase().includes(filter)
+      );
+      if (filtered.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td colspan="7" class="p-4 text-center text-gray-500">Không có coin nào khớp.</td>';
+        tbody.appendChild(tr);
+      } else {
+        filtered.forEach((c, idx) => {
+          const invested = (c.amount || 0) * (c.buyPrice || 0);
+          const currentValue = (c.amount || 0) * (c.currentPrice || 0);
+          const pl = currentValue - invested;
+          const plPct = invested ? (pl / invested) * 100 : 0;
+          const tr = document.createElement("tr");
+          tr.className = "border-t";
+          tr.innerHTML = `
+            <td class="p-2">
+              <div class="font-medium">${escapeHtml(c.name)} <span class="text-xs text-gray-500">(${escapeHtml(c.symbol)})</span></div>
+              <div class="text-xs text-gray-400">${escapeHtml(c.notes || "")}</div>
+              <div class="text-xs text-gray-400">Pair: <strong>${escapeHtml(c.pair || (c.symbol + "USDT"))}</strong></div>
+            </td>
+            <td class="p-2">${c.amount}</td>
+            <td class="p-2 text-right">${fmtUSD(c.buyPrice)}</td>
+            <td class="p-2 text-right">${c.currentPrice ? fmtUSD(c.currentPrice) : (isFetching ? "..." : "-")}</td>
+            <td class="p-2 text-right">${fmtUSD(currentValue)}</td>
+            <td class="p-2 text-right ${pl>=0 ? 'text-emerald-600':'text-red-600'}">${fmtUSD(pl)} (${plPct.toFixed(2)}%)</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button class="px-2 py-1 border rounded text-xs" data-action="edit" data-idx="${idx}">Sửa</button>
+                <button class="px-2 py-1 border rounded text-xs" data-action="delete" data-idx="${idx}">Xóa</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      updateTotals();
+    }
 
-  <!-- FOOTER -->
-  <footer class="text-center text-gray-600 p-4 mt-10">
-    © 2025 Trader Lỏ - Hợp tác cùng phát triển!
-  </footer>
+    function updateTotals() {
+      const invested = coins.reduce((s,c)=> s + (c.amount||0)*(c.buyPrice||0),0);
+      const currentValue = coins.reduce((s,c)=> s + (c.amount||0)*(c.currentPrice||0),0);
+      const totalPL = currentValue - invested;
+      const totalPLPct = invested ? (totalPL / invested) * 100 : 0;
+      $("totalInvested").textContent = fmtUSD(invested);
+      $("totalCurrent").textContent = fmtUSD(currentValue);
+      const el = $("totalPL");
+      el.innerHTML = `Lời/Lỗ: <strong>${fmtUSD(totalPL)} (${totalPLPct.toFixed(2)}%)</strong>`;
+      el.className = `text-sm ${totalPL >= 0 ? "text-emerald-600" : "text-red-600"}`;
+    }
 
+    // ---------- Form ----------
+    function clearForm() {
+      $("name").value = "";
+      $("symbol").value = "";
+      $("pair").value = "";
+      $("amount").value = "";
+      $("buyPrice").value = "";
+      $("notes").value = "";
+      editingIndex = -1;
+      $("saveBtn").textContent = "Thêm vào danh mục";
+      $("cancelEdit").classList.add("hidden");
+    }
+
+    function fillFormForEdit(i) {
+      const c = coins[i];
+      $("name").value = c.name;
+      $("symbol").value = c.symbol;
+      $("pair").value = c.pair || "";
+      $("amount").value = c.amount;
+      $("buyPrice").value = c.buyPrice;
+      $("notes").value = c.notes || "";
+      editingIndex = i;
+      $("saveBtn").textContent = "Cập nhật";
+      $("cancelEdit").classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ---------- CSV ----------
+    function exportCSV() {
+      const header = ["id","name","symbol","pair","amount","buyPrice","notes"].join(",");
+      const rows = coins.map(c => {
+        // escape quotes in notes
+        const notes = (c.notes||"").replace(/"/g,'""');
+        return [c.id, c.name, c.symbol, c.pair||"", c.amount, c.buyPrice, `"${notes}"`].join(",");
+      });
+      const csv = [header, ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "trader_lo_portfolio.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importCSVFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (!lines.length) return;
+        const [, ...data] = lines; // skip header
+        const parsed = data.map(line => {
+          // simple split - expects CSV format like our export
+          // handle quoted notes
+          const parts = splitCSVLine(line);
+          return {
+            id: parts[0]||parts[2].toLowerCase(),
+            name: parts[1]||"",
+            symbol: (parts[2]||"").toUpperCase(),
+            pair: parts[3]||"",
+            amount: Number(parts[4]||0),
+            buyPrice: Number(parts[5]||0),
+            notes: (parts[6]||"").replace(/^"|"$/g, "").replace(/""/g,'"'),
+            currentPrice: null
+          };
+        }).filter(r => r.name || r.symbol);
+        coins = parsed;
+        saveToStorage();
+        renderTable($("search").value.trim().toLowerCase());
+      };
+      reader.readAsText(file);
+    }
+
+    // Very simple CSV line splitter that respects quoted fields
+    function splitCSVLine(line) {
+      const res = [];
+      let cur = "";
+      let inQuotes = false;
+      for (let i=0;i<line.length;i++) {
+        const ch = line[i];
+        if (ch === '"' ) {
+          if (inQuotes && line[i+1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          res.push(cur);
+          cur = "";
+        } else {
+          cur += ch;
+        }
+      }
+      res.push(cur);
+      return res;
+    }
+
+    // ---------- Escape helper ----------
+    function escapeHtml(unsafe) {
+      if (!unsafe && unsafe !== 0) return "";
+      return String(unsafe)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // ---------- Binance price fetching ----------
+    let isFetching = false;
+    async function fetchCurrentPrices() {
+      if (!coins.length) return;
+      isFetching = true;
+      renderTable($("search").value.trim().toLowerCase());
+      try {
+        // For each coin, fetch its pair. Use provided pair or SYMBOLUSDT
+        // Build a set of unique pairs to reduce duplicate requests
+        const pairs = [...new Set(coins.map(c => (c.pair && c.pair.trim()) ? c.pair.trim().toUpperCase() : (c.symbol.toUpperCase() + "USDT")))];
+        // Binance API: /api/v3/ticker/price?symbol=BTCUSDT
+        // We'll fetch each pair individually (rate-limits apply). Could be optimized to batch if needed.
+        const results = {};
+        await Promise.all(pairs.map(async pair => {
+          try {
+            const url = `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(pair)}`;
+            const resp = await fetch(url);
+            if (!resp.ok) {
+              // sometimes pair doesn't exist
+              results[pair] = null;
+            } else {
+              const data = await resp.json();
+              results[pair] = Number(data.price);
+            }
+          } catch (e) {
+            results[pair] = null;
+          }
+        }));
+        // assign prices back to coins
+        coins = coins.map(c => {
+          const pair = (c.pair && c.pair.trim()) ? c.pair.trim().toUpperCase() : (c.symbol.toUpperCase() + "USDT");
+          const price = results[pair] || null;
+          return { ...c, currentPrice: price };
+        });
+        saveToStorage();
+        $("lastUpdated").textContent = new Date().toLocaleString();
+      } catch (err) {
+        console.error(err);
+        alert("Không thể lấy giá từ Binance. Kiểm tra mạng hoặc thử lại sau.");
+      } finally {
+        isFetching = false;
+        renderTable($("search").value.trim().toLowerCase());
+      }
+    }
+
+    // ---------- UI Events ----------
+    document.addEventListener("DOMContentLoaded", () => {
+      // load
+      loadFromStorage();
+      renderTable();
+
+      // form submit
+      $("coinForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = $("name").value.trim();
+        const symbol = $("symbol").value.trim().toUpperCase();
+        const pair = $("pair").value.trim().toUpperCase();
+        const amount = Number($("amount").value.trim() || 0);
+        const buyPrice = Number($("buyPrice").value.trim() || 0);
+        const notes = $("notes").value.trim();
+        if (!name || !symbol || !amount || !buyPrice) {
+          return alert("Vui lòng nhập đủ: tên, symbol, số lượng và giá mua.");
+        }
+        const entry = {
+          id: (symbol || name).toLowerCase(),
+          name, symbol, pair, amount, buyPrice, notes, currentPrice: null
+        };
+        if (editingIndex >= 0) {
+          coins[editingIndex] = { ...coins[editingIndex], ...entry };
+          editingIndex = -1;
+        } else {
+          coins.push(entry);
+        }
+        saveToStorage();
+        clearForm();
+        renderTable($("search").value.trim().toLowerCase());
+      });
+
+      // edit / delete buttons (event delegation)
+      $("tbody").addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+        const action = btn.getAttribute("data-action");
+        const idx = Number(btn.getAttribute("data-idx"));
+        if (action === "edit") {
+          fillFormForEdit(idx);
+        } else if (action === "delete") {
+          if (!confirm("Xóa coin này khỏi danh mục?")) return;
+          coins.splice(idx,1);
+          saveToStorage();
+          renderTable($("search").value.trim().toLowerCase());
+        }
+      });
+
+      // search
+      $("search").addEventListener("input", (e) => {
+        renderTable(e.target.value.trim().toLowerCase());
+      });
+
+      // refresh button
+      $("refreshBtn").addEventListener("click", () => fetchCurrentPrices());
+
+      // export
+      $("exportCsv").addEventListener("click", exportCSV);
+
+      // import
+      $("importFile").addEventListener("change", (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) importCSVFile(f);
+        e.target.value = "";
+      });
+
+      // clear all
+      $("clearAll").addEventListener("click", () => {
+        if (!confirm("Xóa toàn bộ danh mục?")) return;
+        coins = [];
+        saveToStorage();
+        renderTable();
+      });
+
+      // cancel edit
+      $("cancelEdit").addEventListener("click", () => {
+        clearForm();
+      });
+
+      // auto-refresh toggle
+      $("autoRefresh").addEventListener("change", (e) => {
+        setupAutoRefresh(e.target.checked);
+      });
+
+      // interval change
+      $("intervalSelect").addEventListener("change", () => {
+        if ($("autoRefresh").checked) setupAutoRefresh(true);
+      });
+
+      // initial price fetch if there are coins
+      if (coins.length) fetchCurrentPrices();
+    });
+
+    // ---------- Auto refresh ----------
+    function setupAutoRefresh(enabled) {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+      if (enabled) {
+        const sec = Number($("intervalSelect").value) || 60;
+        // first immediate fetch
+        fetchCurrentPrices();
+        autoRefreshTimer = setInterval(fetchCurrentPrices, sec * 1000);
+      }
+    }
+
+    // ---------- Utilities ----------
+    function exportCSV() {
+      try {
+        const header = ["id","name","symbol","pair","amount","buyPrice","notes"].join(",");
+        const rows = coins.map(c => {
+          const notes = (c.notes||"").replace(/"/g,'""');
+          return [c.id, c.name, c.symbol, c.pair||"", c.amount, c.buyPrice, `"${notes}"`].join(",");
+        });
+        const csv = [header, ...rows].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "trader_lo_portfolio.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error(e);
+        alert("Export CSV lỗi.");
+      }
+    }
+
+    // ---------- End ----------
+  </script>
 </body>
 </html>
+
 
 
